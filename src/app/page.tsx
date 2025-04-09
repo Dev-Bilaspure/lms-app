@@ -155,7 +155,7 @@ export default function Home() {
                 <ul className="list-disc pl-5">
                   {uploadResult.uploads.map((file: any, index: number) => (
                     <li key={index} className="text-sm">
-                      {file.originalFilename} (Key: {file.key})
+                      {file.originalFilename} (Key: {file.Key})
                     </li>
                   ))}
                 </ul>
