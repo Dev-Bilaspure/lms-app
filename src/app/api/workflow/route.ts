@@ -3,7 +3,7 @@ import { uploadToS3, getPresignedUrl } from "@/lib/storage/s3";
 import { nanoid } from "nanoid";
 import * as path from "path";
 import { Readable } from "stream";
-import { FileUploadResult } from "@/lib/utils/types";
+import { Asset, FileUploadResult } from "@/lib/utils/types";
 
 const MAX_FILE_SIZE_BYTES = 1024 * 1024 * 200; // 200MB
 
@@ -17,7 +17,7 @@ function bufferToStream(buffer: Buffer): Readable {
 const BUCKET_NAME = process.env.MY_S3_BUCKET!;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const uploadedKeys: FileUploadResult[] = [];
+  const uploadedKeys: Asset[] = [];
   const failedUploads: { name: string; reason: string }[] = [];
 
   try {
@@ -55,18 +55,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           try {
             const presignedUrl = await getPresignedUrl(s3Key);
             uploadedKeys.push({
-              Bucket: BUCKET_NAME!,
-              Key: s3Key,
-              originalFilename: file.name || "unknown",
-              presignedUrl,
+              bucket: BUCKET_NAME!,
+              key: s3Key,
+              name: file.name || "unknown",
+              url: presignedUrl,
+              id: nanoid(),
             });
           } catch (presignedUrlError) {
             console.error(`Failed to generate presigned URL for ${s3Key}:`, presignedUrlError);
             // Still add the file but without the presigned URL
             uploadedKeys.push({
-              Bucket: BUCKET_NAME!,
-              Key: s3Key,
-              originalFilename: file.name || "unknown",
+              bucket: BUCKET_NAME!,
+              key: s3Key,
+              name: file.name || "unknown",
+              id: nanoid(),
             });
           }
         })
