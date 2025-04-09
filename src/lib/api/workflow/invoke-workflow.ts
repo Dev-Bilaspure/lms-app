@@ -1,0 +1,78 @@
+import { MediaJobParams, Task } from "@/lib/mediatoad/types";
+import { nanoid } from "nanoid";
+import { getBaseUrl, TaskId } from "@/lib/api/utils";
+import getTemporalClient from "@/lib/temporal/client";
+import {
+  DEFAULT_MEDIA_TOAD_WORKER_QUEUE,
+  HIGH_PRIORITY_MEDIA_TOAD_WORKER_QUEUE,
+} from "@/lib/temporal/constants";
+import fs from "fs";
+
+const BUCKET_NAME = process.env.MY_S3_BUCKET!;
+const PATH_BASE = "lms-app/workflows";
+
+export async function invokeWorkflow({
+  partialTranscripts,
+  assetsData,
+}: {
+  partialTranscripts: { id: string; asset_id: string }[];
+  assetsData: {
+    id: string;
+    bucket: string;
+    key: string;
+    name: string;
+    url: string;
+  }[];
+}) {
+  const payload: MediaJobParams = {
+    jobId: nanoid(),
+    assets: partialTranscripts.map((t) => ({
+      name: `video-asset-${t.asset_id}`,
+      url: assetsData.find((a) => a.id === t.asset_id)?.url!,
+    })),
+    tasks: partialTranscripts.flatMap((t): Task[] => [
+      {
+        operation: "transcription",
+        asset: `video-asset-${t.asset_id}`,
+        provider: "deepgram",
+        apiKey: process.env.DEEPGRAM_API_KEY!,
+        id: TaskId.generate("transcription", t.id),
+        language: "hi",
+        outputAsset: `transcription-asset-${t.id}`,
+      },
+      {
+        operation: "segmentation",
+        asset: `transcription-asset-${t.id}`,
+        id: TaskId.generate("segmentation", t.id),
+        outputAsset: `segmentation-asset-${t.id}`,
+        notify: { url: generateTaskNotification(t.id) },
+      },
+    ]),
+    storage: {
+      bucket: BUCKET_NAME,
+      base: PATH_BASE,
+      storageType: "s3",
+    },
+  };
+
+  const client = await getTemporalClient();
+
+  const handle = await client.workflow.start("mediaJobWorkflow", {
+    args: [payload],
+    taskQueue:
+      payload.queue === "highPriority"
+        ? HIGH_PRIORITY_MEDIA_TOAD_WORKER_QUEUE
+        : DEFAULT_MEDIA_TOAD_WORKER_QUEUE,
+    workflowId: `media-workflow-${payload.jobId}`,
+    searchAttributes: {
+      ...(payload.type && { MediaInfraJobType: [payload.type] }),
+      ...(payload.externalId && { ExternalId: [payload.externalId] }),
+    },
+  });
+
+  return { workflowId: handle.workflowId };
+}
+
+function generateTaskNotification(transcriptId: string): string {
+  return `${getBaseUrl()}/api/workflow/notification/task/${transcriptId}`;
+}
