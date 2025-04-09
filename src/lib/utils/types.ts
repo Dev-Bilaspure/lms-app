@@ -34,8 +34,8 @@ export type ViralSegment = {
 
 export type Transcript = {
   id: string;
-  response: TranscriptResponse;
-  segments: ViralSegment[];
+  response?: TranscriptResponse;
+  segments?: ViralSegment[];
   assetId: string;
 };
 

@@ -26,8 +26,8 @@ EXECUTE FUNCTION update_updated_at();
 -- Create Transcripts table
 CREATE TABLE transcripts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  response JSONB NOT NULL,
-  segments JSONB NOT NULL,
+  response JSONB, -- ALTER TABLE transcripts ALTER COLUMN response DROP NOT NULL;
+  segments JSONB, -- ALTER TABLE transcripts ALTER COLUMN segments DROP NOT NULL;
   asset_id UUID NOT NULL REFERENCES assets(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
