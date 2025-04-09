@@ -2,11 +2,11 @@
 // Task Status
 //
 export type TaskStatus =
-  | 'QUEUED'
-  | 'PROCESSING'
-  | 'COMPLETED'
-  | 'FAILED'
-  | 'DONE';
+  | "QUEUED"
+  | "PROCESSING"
+  | "COMPLETED"
+  | "FAILED"
+  | "DONE";
 
 //
 // OnFailure
@@ -15,7 +15,7 @@ export type OnFailure = {
   /**
    * Optional instructions on what to do if task fails.
    */
-  action?: 'FAIL_WORKFLOW';
+  action?: "FAIL_WORKFLOW";
 };
 
 //
@@ -143,7 +143,7 @@ export type ThumbnailsFields = {
 // Encode Task
 //
 export type EncodeTask = BaseTask & {
-  operation: 'encode';
+  operation: "encode";
   /**
    * Name of the asset.
    */
@@ -160,7 +160,7 @@ export type EncodeTaskState = EncodeTask & CommonTaskStateFields;
 // Scenes Task
 //
 export type ScenesTask = BaseTask & {
-  operation: 'scenes';
+  operation: "scenes";
   asset: string;
   threshold?: number;
   thumbnails?: {
@@ -175,7 +175,7 @@ export type ScenesTaskState = ScenesTask & CommonTaskStateFields & ScenesFields;
 // Thumbnails Task
 //
 export type ThumbnailsTask = BaseTask & {
-  operation: 'thumbnails';
+  operation: "thumbnails";
   asset: string;
   /**
    * Array of timestamps (seconds) or the name of an asset containing a JSON array of timestamps.
@@ -192,7 +192,7 @@ export type ThumbnailsTaskState = ThumbnailsTask &
 // Merge Task
 //
 export type MergeTask = BaseTask & {
-  operation: 'merge';
+  operation: "merge";
   videoAsset: string;
   audioAsset: string;
 };
@@ -203,11 +203,11 @@ export type MergeTaskState = MergeTask & CommonTaskStateFields;
 // Clip Task
 //
 export type ClipTask = BaseTask & {
-  operation: 'clip';
+  operation: "clip";
   asset?: string;
   start?: number;
   end?: number;
-  type?: 'audio' | 'video';
+  type?: "audio" | "video";
   segmentsAsset?: string;
   batchClip?: boolean;
 };
@@ -235,24 +235,24 @@ export type ClipTaskState = ClipTask &
 // YouTube Resolution
 //
 export type YouTubeResolution =
-  | 'highest-available'
-  | 'lowest-available'
-  | '1080p'
-  | '720p'
-  | '480p'
-  | '360p'
-  | '240p';
+  | "highest-available"
+  | "lowest-available"
+  | "1080p"
+  | "720p"
+  | "480p"
+  | "360p"
+  | "240p";
 
 //
 // Download Provider
 //
-export type DownloadProvider = 'rapidapi' | 'sieve';
+export type DownloadProvider = "rapidapi" | "sieve";
 
 //
 // Download Task
 //
 export type DownloadTask = BaseTask & {
-  operation: 'download';
+  operation: "download";
   url?: string;
   asset?: string;
   outputAsset?: string;
@@ -271,7 +271,7 @@ export type DownloadTaskState = DownloadTask & CommonTaskStateFields;
 // Object Detection Task
 //
 export type ObjectDetectionTask = BaseTask & {
-  operation: 'object-detection';
+  operation: "object-detection";
   asset: string;
   provider?: string;
   serviceUrl?: string;
@@ -284,9 +284,9 @@ export type ObjectDetectionTaskState = ObjectDetectionTask &
 // Transcription Task
 //
 export type TranscriptionTask = BaseTask & {
-  operation: 'transcription';
+  operation: "transcription";
   asset: string;
-  provider?: 'deepgram' | 'assemblyai';
+  provider?: "deepgram" | "assemblyai";
   serviceUrl?: string;
   language?: string;
   apiKey?: string;
@@ -301,7 +301,7 @@ export type TranscriptionTaskState = TranscriptionTask &
 // Segmentation Task
 //
 export type SegmentationTask = BaseTask & {
-  operation: 'segmentation';
+  operation: "segmentation";
   asset: string;
   clipLength?: number;
   model?: string;
@@ -320,7 +320,7 @@ export type SegmentationTaskState = SegmentationTask &
 // Service Call Task
 //
 export type ServiceCallTask = BaseTask & {
-  operation: 'service-call';
+  operation: "service-call";
   asset: string;
   /**
    * External service endpoint.
@@ -329,7 +329,7 @@ export type ServiceCallTask = BaseTask & {
   /**
    * Optional HTTP method.
    */
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   /**
    * Optional HTTP headers.
    */
@@ -349,7 +349,7 @@ export type ServiceCallTaskState = ServiceCallTask &
 // Dubbing Task
 //
 export type DubbingTask = BaseTask & {
-  operation: 'dubbing';
+  operation: "dubbing";
   asset: string;
   targetUrl: string;
   provider?: string;
@@ -409,13 +409,13 @@ export type TaskState =
 export type Asset = {
   name: string;
   url: string;
-  urlType?: 's3' | 'azure' | 'url';
+  urlType?: "s3" | "azure" | "url";
 };
 
 export type Storage = {
   bucket?: string;
   base?: string;
-  storageType?: 's3' | 'azure';
+  storageType?: "s3" | "azure";
 };
 
 export type MediaJobParams = {
@@ -457,11 +457,11 @@ export type MediaJobParams = {
 // Job Status
 //
 export type JobStatus =
-  | 'QUEUED'
-  | 'PROCESSING'
-  | 'COMPLETED'
-  | 'FAILED'
-  | 'DONE';
+  | "QUEUED"
+  | "PROCESSING"
+  | "COMPLETED"
+  | "FAILED"
+  | "DONE";
 
 //
 // Job Details
@@ -493,7 +493,7 @@ export type MediaJobNotifiedParams = {
   jobId: string;
   jobConfig: MediaJobParams;
   tasks: TaskState[];
-  notifyStatus: 'SUCCESS' | 'FAILED' | null;
+  notifyStatus: "SUCCESS" | "FAILED" | null;
   status: JobStatus;
   statusHistory: Array<{ status: string; timestamp: number }>;
   notify: Notification;
@@ -511,13 +511,5 @@ export type MediaTaskNotifiedParams = {
   taskId: string;
   taskConfig: Task;
   task: TaskState;
-  notifyStatus: 'SUCCESS' | 'FAILED' | null;
-};
-
-
-// API Response Types
-export type FileUploadResult = {
-  Key: string;
-  originalFilename: string;
-  Bucket: string;
+  notifyStatus: "SUCCESS" | "FAILED" | null;
 };
