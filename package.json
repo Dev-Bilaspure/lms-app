@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "minio": "chmod +x ./scripts/minio.sh && ./scripts/minio.sh"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.556.0",
