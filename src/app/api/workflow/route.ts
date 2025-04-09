@@ -1,9 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { uploadToS3 } from "@/lib/storage/s3";
+import { uploadToS3, getPresignedUrl } from "@/lib/storage/s3";
 import { nanoid } from "nanoid";
 import * as path from "path";
-import type { FileUploadResult } from "@/lib/types";
 import { Readable } from "stream";
+import { FileUploadResult } from "@/lib/utils/types";
 
 const MAX_FILE_SIZE_BYTES = 1024 * 1024 * 200; // 200MB
 
@@ -51,12 +51,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const mime = file.type || "application/octet-stream";
 
       const upload = uploadToS3(bufferToStream(buffer), s3Key, mime)
-        .then(() => {
-          uploadedKeys.push({
-            Bucket: BUCKET_NAME!,
-            Key: s3Key,
-            originalFilename: file.name || "unknown",
-          });
+        .then(async () => {
+          try {
+            const presignedUrl = await getPresignedUrl(s3Key);
+            uploadedKeys.push({
+              Bucket: BUCKET_NAME!,
+              Key: s3Key,
+              originalFilename: file.name || "unknown",
+              presignedUrl,
+            });
+          } catch (presignedUrlError) {
+            console.error(`Failed to generate presigned URL for ${s3Key}:`, presignedUrlError);
+            // Still add the file but without the presigned URL
+            uploadedKeys.push({
+              Bucket: BUCKET_NAME!,
+              Key: s3Key,
+              originalFilename: file.name || "unknown",
+            });
+          }
         })
         .catch((err) => {
           console.error(`Upload failed for ${file.name}`, err);

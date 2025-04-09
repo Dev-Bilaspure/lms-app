@@ -1,5 +1,6 @@
-import { S3Client } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Readable } from "stream";
 
 const S3_ENDPOINT = process.env.S3_ENDPOINT_URL;
@@ -124,6 +125,37 @@ export const uploadToS3 = async (
     // Consider logging the error to a monitoring service here
 
     throw new Error(errorMessage);
+  }
+};
+
+/**
+ * Generates a presigned URL for accessing an S3 object.
+ *
+ * @param key The S3 object key (path within the bucket).
+ * @param expiresIn Duration in seconds until the URL expires (default: 1 hour).
+ * @returns A promise that resolves with the presigned URL.
+ */
+export const getPresignedUrl = async (
+  key: string,
+  expiresIn: number = 3600
+): Promise<string> => {
+  if (!bucketName) {
+    throw new Error(
+      "S3 bucket name is not configured. Set the S3_STORAGE_BUCKET environment variable."
+    );
+  }
+
+  const command = new GetObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+  });
+
+  try {
+    const url = await getSignedUrl(s3Client, command, { expiresIn });
+    return url;
+  } catch (error) {
+    console.error(`Failed to generate presigned URL for key ${key}:`, error);
+    throw new Error(`Failed to generate presigned URL: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
