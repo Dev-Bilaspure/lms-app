@@ -34,6 +34,9 @@ CREATE TABLE transcripts (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
+alter publication supabase_realtime
+add table transcripts;
+
 
 -- Create updated_at trigger for transcripts
 CREATE TRIGGER transcripts_updated_at_trigger
