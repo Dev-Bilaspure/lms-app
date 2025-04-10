@@ -36,7 +36,6 @@ export async function invokeWorkflow({
         provider: "deepgram",
         apiKey: process.env.DEEPGRAM_API_KEY!,
         id: TaskId.generate("transcription", t.id),
-        language: "hi",
         outputAsset: `transcription-asset-${t.id}`,
       },
       {
