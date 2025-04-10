@@ -4,7 +4,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Readable } from "stream";
 
 const S3_ENDPOINT = process.env.S3_ENDPOINT_URL;
-const S3_BUCKET = process.env.MY_S3_BUCKET!;
+const S3_BUCKET = process.env.S3_BUCKET_NAME!;
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || "us-east-1",
@@ -21,13 +21,13 @@ const s3Client = new S3Client({
 });
 
 // Get bucket name from environment variable
-const bucketName = process.env.MY_S3_BUCKET;
+const bucketName = process.env.S3_BUCKET_NAME;
 
 if (!bucketName) {
   console.warn(
-    "S3_STORAGE_BUCKET environment variable is not set. Uploads will fail."
+    "S3_BUCKET_NAME environment variable is not set. Uploads will fail."
   );
-  throw new Error("S3_STORAGE_BUCKET environment variable is required.");
+  throw new Error("S3_BUCKET_NAME environment variable is required.");
 }
 
 /**
@@ -45,7 +45,7 @@ export const uploadToS3 = async (
 ): Promise<string> => {
   if (!bucketName) {
     throw new Error(
-      "S3 bucket name is not configured. Set the S3_STORAGE_BUCKET environment variable."
+      "S3 bucket name is not configured. Set the S3_BUCKET_NAME environment variable."
     );
   }
 
@@ -142,7 +142,7 @@ export const getPresignedUrl = async (
 ): Promise<string> => {
   if (!bucketName) {
     throw new Error(
-      "S3 bucket name is not configured. Set the S3_STORAGE_BUCKET environment variable."
+      "S3 bucket name is not configured. Set the S3_BUCKET_NAME environment variable."
     );
   }
 

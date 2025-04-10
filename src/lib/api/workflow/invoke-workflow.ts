@@ -8,7 +8,7 @@ import {
 } from "@/lib/temporal/constants";
 import fs from "fs";
 
-const BUCKET_NAME = process.env.MY_S3_BUCKET!;
+const BUCKET_NAME = process.env.S3_BUCKET_NAME!;
 const PATH_BASE = "lms-app/workflows";
 
 export async function invokeWorkflow({

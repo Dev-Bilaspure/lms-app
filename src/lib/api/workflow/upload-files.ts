@@ -5,7 +5,7 @@ import path from "path";
 import { Readable } from "stream";
 
 const MAX_FILE_SIZE_BYTES = 1024 * 1024 * 200; // 200MB
-const BUCKET_NAME = process.env.MY_S3_BUCKET!;
+const BUCKET_NAME = process.env.S3_BUCKET_NAME!;
 const PATH_BASE = "lms-app/workflows";
 
 export async function uploadFiles(formData: FormData) {
