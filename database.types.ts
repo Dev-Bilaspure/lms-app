@@ -740,6 +740,54 @@ export type Database = {
         }
         Relationships: []
       }
+      clips: {
+        Row: {
+          asset_id: string
+          created_at: string
+          end: number
+          id: string
+          meta: Json | null
+          start: number
+          transcript_id: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          end: number
+          id?: string
+          meta?: Json | null
+          start: number
+          transcript_id: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          end?: number
+          id?: string
+          meta?: Json | null
+          start?: number
+          transcript_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clips_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clips_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: false
+            referencedRelation: "transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transcripts: {
         Row: {
           asset_id: string
