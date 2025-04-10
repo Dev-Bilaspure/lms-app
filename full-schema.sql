@@ -28,12 +28,12 @@ CREATE TABLE transcripts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT DEFAULT 'Untitled',
   response JSONB,
-  segments JSONB,
   status TEXT NOT NULL DEFAULT 'STARTED',
   asset_id UUID NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
+
 
 -- Create updated_at trigger for transcripts
 CREATE TRIGGER transcripts_updated_at_trigger

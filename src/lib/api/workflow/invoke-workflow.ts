@@ -47,6 +47,13 @@ export async function invokeWorkflow({
         outputAsset: `segmentation-asset-${t.id}`,
         modelApiKey: process.env.GEMINI_API_KEY!,
         model: "gemini-1.5-flash",
+      },
+      {
+        operation: "clip",
+        asset: `video-asset-${t.asset_id}`,
+        id: TaskId.generate("clip", t.id),
+        outputAsset: `clip-asset-${t.id}`,
+        segmentsAsset: `segmentation-asset-${t.id}`,
         notify: { url: generateTaskNotification(t.id) },
       },
     ]),
