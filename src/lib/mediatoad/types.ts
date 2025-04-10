@@ -305,6 +305,7 @@ export type SegmentationTask = BaseTask & {
   asset: string;
   clipLength?: number;
   model?: string;
+  modelApiKey?: string;
   /**
    * Optional mock data array for testing segments.
    */
