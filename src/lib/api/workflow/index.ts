@@ -32,6 +32,7 @@ export async function handleUpload(formData: FormData) {
   const transcripts = assetsData.map((asset) => ({
     id: uuidv4(),
     asset_id: asset.id,
+    title: asset.name,
   }));
 
   const { data: partialTranscriptsData, error: transcriptsError } =
@@ -50,6 +51,6 @@ export async function handleUpload(formData: FormData) {
 
   return {
     success: true,
-    workflowId
+    workflowId,
   };
 }

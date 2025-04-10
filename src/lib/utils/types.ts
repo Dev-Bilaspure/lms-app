@@ -37,6 +37,7 @@ export type Transcript = {
   response?: TranscriptResponse;
   segments?: ViralSegment[];
   assetId: string;
+  title?: string;
 };
 
 export type Asset = {

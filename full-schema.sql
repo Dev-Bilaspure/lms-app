@@ -26,6 +26,7 @@ EXECUTE FUNCTION update_updated_at();
 -- Create Transcripts table
 CREATE TABLE transcripts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT DEFAULT 'Untitled', -- ALTER TABLE transcripts ADD COLUMN title TEXT DEFAULT 'Untitled';
   response JSONB, -- ALTER TABLE transcripts ALTER COLUMN response DROP NOT NULL;
   segments JSONB, -- ALTER TABLE transcripts ALTER COLUMN segments DROP NOT NULL;
   asset_id UUID NOT NULL REFERENCES assets(id),
