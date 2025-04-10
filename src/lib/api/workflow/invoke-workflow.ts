@@ -45,6 +45,8 @@ export async function invokeWorkflow({
         asset: `transcription-asset-${t.id}`,
         id: TaskId.generate("segmentation", t.id),
         outputAsset: `segmentation-asset-${t.id}`,
+        modelApiKey: process.env.GEMINI_API_KEY!,
+        model: "gemini-1.5-flash",
         notify: { url: generateTaskNotification(t.id) },
       },
     ]),
