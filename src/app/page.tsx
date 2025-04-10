@@ -10,7 +10,12 @@ import Link from "next/link";
 import { startWorkflow } from "@/lib/utils/fetch"; // Assuming startWorkflow handles API call
 import { EmptyState } from "@/components/EmptyState";
 import { supabase } from "@/supabase/client";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Placeholder data - replace with actual API call
 
@@ -48,42 +53,52 @@ export default function Home() {
     await handleUpload(acceptedFiles);
   }, []);
 
-  const handleUpload = async (filesToUpload: File[]) => {
-    if (!filesToUpload || filesToUpload.length === 0) {
-      setErrorMessage("No files selected for upload");
-      return;
-    }
-
-    setIsUploading(true);
-    setErrorMessage(null);
-    setUploadResult(null);
+  const handleUpload = async (files: File[]) => {
+    if (!files?.length) return;
 
     try {
-      const formData = new FormData();
-      filesToUpload.forEach((file, index) => {
-        formData.append(`file-${index}`, file);
-      });
+      const uploads = await Promise.all(
+        files.map(async (file) => {
+          // Step 1: Get presigned URL
+          const res = await fetch("/api/s3/upload-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              filename: file.name,
+              contentType: file.type,
+            }),
+          });
 
-      const result = await startWorkflow(formData); // Use the imported fetch function
-      setUploadResult(result);
-      // Potentially refresh transcript list here or show success message
-      console.log("Upload successful:", result);
-      setAcceptedFilesState([]); // Clear files after successful upload
+          if (!res.ok)
+            throw new Error(`Failed to get upload URL for ${file.name}`);
 
-      // TODO: Add logic to refresh the transcript list below
-      // For now, just logging success. You might need to re-fetch mockTranscripts or actual data.
+          const { url, key, bucket } = await res.json();
+
+          // Step 2: Upload to S3
+          const uploadRes = await fetch(url, {
+            method: "PUT",
+            headers: { "Content-Type": file.type },
+            body: file,
+          });
+
+          if (!uploadRes.ok) throw new Error(`Upload failed for ${file.name}`);
+
+          console.log({ url, key }, "✅ Uploaded:", file.name);
+
+          return { fileName: file.name, key, bucket };
+        })
+      );
+
+      const { workflowId, transcripts } = await startWorkflow(uploads);
+
+      setTranscripts((prev) => [...transcripts, ...prev]);
+
+      return uploads;
     } catch (error) {
       console.error("Upload error:", error);
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "An unknown error occurred during upload"
-      );
-    } finally {
-      setIsUploading(false);
+      throw error;
     }
   };
-
   const {
     getRootProps,
     getInputProps,
@@ -168,19 +183,28 @@ export default function Home() {
                 <div className="absolute top-2 right-2 z-10">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full"
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                         <span className="sr-only">Open menu</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
-                        onClick={async(e) => {
+                        onClick={async (e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          await supabase.from("transcripts").delete().eq("id", transcript.id);
-                          setTranscripts(transcripts.filter((t) => t.id !== transcript.id));
+                          await supabase
+                            .from("transcripts")
+                            .delete()
+                            .eq("id", transcript.id);
+                          setTranscripts(
+                            transcripts.filter((t) => t.id !== transcript.id)
+                          );
                         }}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
@@ -189,10 +213,7 @@ export default function Home() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                <Link
-                  href={`/project/${transcript.id}`}
-                  passHref
-                >
+                <Link href={`/project/${transcript.id}`} passHref>
                   <Card className="h-full flex flex-col hover:shadow-lg transition-shadow cursor-pointer bg-card border-border">
                     <CardContent className="flex-grow flex flex-col items-center justify-center p-6">
                       <Video className="w-16 h-16 text-muted-foreground mb-4" />
@@ -200,13 +221,16 @@ export default function Home() {
                         {transcript.title}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(transcript.created_at).toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                        {new Date(transcript.created_at).toLocaleDateString(
+                          undefined,
+                          {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )}
                       </p>
                     </CardContent>
                   </Card>

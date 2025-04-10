@@ -5,16 +5,16 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const formData = await req.formData();
+    const { uploads } = await req.json();
 
-    if (formData.entries().next().done) {
+    if (!uploads?.length) {
       return NextResponse.json(
-        { message: "No files uploaded" },
+        { message: "No uploads provided" },
         { status: 400 }
       );
     }
 
-    const result = await handleUpload(formData);
+    const result = await handleUpload(uploads);
 
     return NextResponse.json(result, { status: 200 });
   } catch (err: any) {

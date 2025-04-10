@@ -1,4 +1,4 @@
-import { getPresignedUrl } from "@/lib/storage/s3";
+import { getDownloadPresignedUrl } from "@/lib/storage/s3";
 import { supabase } from "@/supabase/client";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -46,7 +46,7 @@ export async function GET(
       );
     }
 
-    const asset_url = await getPresignedUrl(transcriptAsset.key);
+    const asset_url = await getDownloadPresignedUrl(transcriptAsset.key);
 
     const { data: clipsFetchData, error: clipsFetchError } = await supabase
       .from("clips")
@@ -62,7 +62,7 @@ export async function GET(
 
     const transcriptClips = await Promise.all(
       clipsFetchData.map(async (clip) => {
-        const clipAsset = await getPresignedUrl(clip.asset_id);
+        const clipAsset = await getDownloadPresignedUrl(clip.asset_id);
         return {
           ...clip,
           ...((clip.meta as object) || {}),

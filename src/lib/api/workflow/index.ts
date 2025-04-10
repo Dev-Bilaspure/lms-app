@@ -1,20 +1,33 @@
 import { supabase } from "@/supabase/client";
 import { v4 as uuidv4 } from "uuid";
-import { uploadFiles } from "./upload-files";
 import { invokeWorkflow } from "./invoke-workflow";
+import { getDownloadPresignedUrl } from "@/lib/storage/s3";
 
-export async function handleUpload(formData: FormData) {
-  const { uploadedKeys, failedUploads } = await uploadFiles(formData);
-
-  if (uploadedKeys.length === 0) {
+export async function handleUpload(
+  uploads: {
+    fileName: string;
+    key: string;
+    bucket: string;
+  }[]
+) {
+  if (uploads.length === 0) {
     throw new Error("All uploads failed");
   }
 
-  const assetsToUpload = uploadedKeys.map(({ bucket, key, name }) => ({
-    bucket,
-    key,
-    name,
-  }));
+  const uploadsWithSignedUrls = await Promise.all(
+    uploads.map(async (upload) => {
+      const url = await getDownloadPresignedUrl(upload.key);
+      return { ...upload, url };
+    })
+  );
+
+  const assetsToUpload = uploadsWithSignedUrls.map(
+    ({ bucket, key, fileName }) => ({
+      bucket,
+      key,
+      name: fileName,
+    })
+  );
 
   const { data: assetsData, error: assetsError } = await supabase
     .from("assets")
@@ -26,13 +39,14 @@ export async function handleUpload(formData: FormData) {
 
   const assetsDataWithUrls = assetsData.map((asset) => ({
     ...asset,
-    url: uploadedKeys.find((u) => u.key === asset.key)?.url!,
+    url: uploadsWithSignedUrls.find((u) => u.key === asset.key)?.url!,
   }));
 
   const transcripts = assetsData.map((asset) => ({
     id: uuidv4(),
     asset_id: asset.id,
     title: asset.name,
+    status: "STARTED",
   }));
 
   const { data: partialTranscriptsData, error: transcriptsError } =
@@ -52,5 +66,6 @@ export async function handleUpload(formData: FormData) {
   return {
     success: true,
     workflowId,
+    transcripts: partialTranscriptsData,
   };
 }

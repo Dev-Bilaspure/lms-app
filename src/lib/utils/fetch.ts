@@ -33,10 +33,14 @@ export async function getTranscriptById(
   return response.json();
 }
 
-export async function startWorkflow(formData: FormData) {
+export async function startWorkflow(uploads: {
+  fileName: string;
+  key: string;
+  bucket: string;
+}[]) {
   const response = await fetch("/api/workflow", {
     method: "POST",
-    body: formData,
+    body: JSON.stringify({ uploads }),
   });
   if (!response.ok) {
     throw new Error("Failed to start workflow");
