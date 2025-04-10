@@ -18,6 +18,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Placeholder data - replace with actual API call
 
@@ -101,7 +107,7 @@ export default function Home() {
       // Add status to new transcripts and add them to state
       const transcriptsWithStatus = newTranscripts.map((transcript: any) => ({
         ...transcript,
-        status: "STARTED",
+        status: "TRANSCRIBING",
       }));
 
       setTranscripts((prev) => [...transcriptsWithStatus, ...prev]);
@@ -203,24 +209,37 @@ export default function Home() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {transcripts.map((transcript) => {
-                const isProcessing = transcript.status === "STARTED";
+                const isProcessing = ["TRANSCRIBING", "GENERATING_SEGMENTS", "GENERATING_CLIPS"].includes(transcript.status);
                 return (
                   <div key={transcript.id} className="relative">
                     <div className="absolute top-2 right-2 z-10">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild disabled={isProcessing}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn(
-                              "h-8 w-8 rounded-full",
-                              isProcessing && "opacity-50 cursor-not-allowed"
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div>
+                                <DropdownMenuTrigger asChild disabled={isProcessing}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={cn(
+                                      "h-8 w-8 rounded-full",
+                                      isProcessing && "opacity-50 cursor-not-allowed"
+                                    )}
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Open menu</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                              </div>
+                            </TooltipTrigger>
+                            {isProcessing && (
+                              <TooltipContent>
+                                <p>Cannot modify project while processing</p>
+                              </TooltipContent>
                             )}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
+                          </Tooltip>
+                        </TooltipProvider>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
@@ -255,9 +274,19 @@ export default function Home() {
                         className={cn(
                           "h-full flex flex-col transition-shadow bg-card border-border",
                           !isProcessing && "hover:shadow-lg cursor-pointer",
-                          isProcessing && "opacity-80"
+                          isProcessing && "opacity-80",
+                          transcript.status === "FAILED" && "border-red-400 opacity-90",
+                          transcript.status === "DONE" && "border-green-400"
                         )}
                       >
+                        <div className={cn(
+                          "h-1 w-full rounded-t-lg",
+                          transcript.status === "TRANSCRIBING" && "bg-amber-500",
+                          transcript.status === "GENERATING_SEGMENTS" && "bg-blue-500",
+                          transcript.status === "GENERATING_CLIPS" && "bg-purple-500",
+                          transcript.status === "FAILED" && "bg-red-500",
+                          transcript.status === "DONE" && "bg-green-500"
+                        )}></div>
                         <CardContent className="flex-grow flex flex-col items-center justify-center p-6">
                           <Video className="w-16 h-16 text-muted-foreground mb-4" />
                           <p className="text-sm font-medium text-center text-card-foreground mb-1 leading-tight">
@@ -275,11 +304,27 @@ export default function Home() {
                               }
                             )}
                           </p>
-                          {isProcessing && (
+                          {transcript.status === "TRANSCRIBING" && (
                             <div className="flex items-center mt-2">
                               <div className="w-3 h-3 mr-2 bg-amber-500 rounded-full animate-pulse"></div>
                               <span className="text-xs text-amber-500 font-medium">
-                                Processing
+                                Transcribing
+                              </span>
+                            </div>
+                          )}
+                          {transcript.status === "GENERATING_SEGMENTS" && (
+                            <div className="flex items-center mt-2">
+                              <div className="w-3 h-3 mr-2 bg-blue-500 rounded-full animate-pulse"></div>
+                              <span className="text-xs text-blue-500 font-medium">
+                                Generating Segments
+                              </span>
+                            </div>
+                          )}
+                          {transcript.status === "GENERATING_CLIPS" && (
+                            <div className="flex items-center mt-2">
+                              <div className="w-3 h-3 mr-2 bg-purple-500 rounded-full animate-pulse"></div>
+                              <span className="text-xs text-purple-500 font-medium">
+                                Generating Clips
                               </span>
                             </div>
                           )}
@@ -288,6 +333,14 @@ export default function Home() {
                               <div className="w-3 h-3 mr-2 bg-green-500 rounded-full"></div>
                               <span className="text-xs text-green-500 font-medium">
                                 Ready
+                              </span>
+                            </div>
+                          )}
+                          {transcript.status === "FAILED" && (
+                            <div className="flex items-center mt-2">
+                              <div className="w-3 h-3 mr-2 bg-red-500 rounded-full"></div>
+                              <span className="text-xs text-red-500 font-medium">
+                                Failed
                               </span>
                             </div>
                           )}

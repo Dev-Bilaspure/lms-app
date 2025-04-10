@@ -1,9 +1,4 @@
-import {
-  ClipTaskState,
-  MediaTaskNotifiedParams,
-  SegmentationTaskState,
-  TranscriptionTaskState,
-} from "@/lib/mediatoad/types";
+import { MediaTaskNotifiedParams } from "@/lib/mediatoad/types";
 import { downloadJsonFromS3 } from "@/lib/storage/s3";
 import { supabase } from "@/supabase/client";
 
@@ -18,6 +13,76 @@ export async function taskCallback(args: {
       throw new Error("Payload or transcriptId is missing");
     }
 
+    if (payload.task.operation === "transcription") {
+      await handleTranscriptionTask({ payload, transcriptId });
+    } else if (payload.task.operation === "segmentation") {
+      await handleSegmentationTask({ payload, transcriptId });
+    } else if (payload.task.operation === "clip") {
+      await handleClipTask({ payload, transcriptId });
+    }
+
+    return {
+      success: true,
+      message: "Task callback processed successfully",
+    };
+  } catch (error) {
+    console.error(`Error occurred in taskCallback: ${JSON.stringify(error)}`);
+    throw new Error(`Error occurred in taskCallback: ${JSON.stringify(error)}`);
+  }
+}
+
+async function handleTranscriptionTask({
+  payload,
+  transcriptId,
+}: {
+  payload: MediaTaskNotifiedParams;
+  transcriptId: string;
+}) {
+  try {
+    await supabase
+      .from("transcripts")
+      .update({ status: "GENERATING_SEGMENTS" })
+      .eq("id", transcriptId);
+  } catch (error) {
+    console.error("Error occurred in handleTranscriptionTask:", error);
+    throw new Error(
+      `Error in handleTranscriptionTask: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+}
+
+async function handleSegmentationTask({
+  payload,
+  transcriptId,
+}: {
+  payload: MediaTaskNotifiedParams;
+  transcriptId: string;
+}) {
+  try {
+    await supabase
+      .from("transcripts")
+      .update({ status: "GENERATING_CLIPS" })
+      .eq("id", transcriptId);
+  } catch (error) {
+    console.error("Error occurred in handleSegmentationTask:", error);
+    throw new Error(
+      `Error in handleSegmentationTask: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+}
+
+async function handleClipTask({
+  payload,
+  transcriptId,
+}: {
+  payload: MediaTaskNotifiedParams;
+  transcriptId: string;
+}) {
+  try {
     const { tasks } = payload;
 
     const segmentationTask = tasks.find(
@@ -34,33 +99,6 @@ export async function taskCallback(args: {
       );
     }
 
-    const result = await handleSegmentationTask({
-      segmentationTask,
-      transcriptionTask,
-      clipTask,
-      transcriptId,
-    });
-
-    console.log(`Task callback result: `, result);
-    return result;
-  } catch (error) {
-    console.error(`Error occurred in taskCallback: ${JSON.stringify(error)}`);
-    throw new Error(`Error occurred in taskCallback: ${JSON.stringify(error)}`);
-  }
-}
-
-async function handleSegmentationTask({
-  segmentationTask,
-  transcriptionTask,
-  clipTask,
-  transcriptId,
-}: {
-  segmentationTask: SegmentationTaskState;
-  transcriptionTask: TranscriptionTaskState;
-  clipTask: ClipTaskState;
-  transcriptId: string;
-}) {
-  try {
     // Validate and process transcription
     const transcriptionKey = transcriptionTask.Key;
     if (!transcriptionKey) {

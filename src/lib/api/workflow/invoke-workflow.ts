@@ -38,6 +38,7 @@ export async function invokeWorkflow({
         id: TaskId.generate("transcription", t.id),
         outputAsset: `transcription-asset-${t.id}`,
         language: "en",
+        notify: { url: generateWorkflowNotification(t.id, "task") },
       },
       {
         operation: "segmentation",
@@ -46,6 +47,7 @@ export async function invokeWorkflow({
         outputAsset: `segmentation-asset-${t.id}`,
         modelApiKey: process.env.GEMINI_API_KEY!,
         model: "gemini-1.5-flash",
+        notify: { url: generateWorkflowNotification(t.id, "task") },
       },
       {
         operation: "clip",
@@ -54,7 +56,7 @@ export async function invokeWorkflow({
         id: TaskId.generate("clip", t.id),
         outputAsset: `clip-asset-${t.id}`,
         segmentsAsset: `segmentation-asset-${t.id}`,
-        notify: { url: generateTaskNotification(t.id) },
+        notify: { url: generateWorkflowNotification(t.id, "task") },
       },
     ]),
     storage: {
@@ -82,6 +84,9 @@ export async function invokeWorkflow({
   return { workflowId: handle.workflowId };
 }
 
-function generateTaskNotification(transcriptId: string): string {
-  return `${getBaseUrl()}/api/workflow/notification/task/${transcriptId}`;
+function generateWorkflowNotification(
+  transcriptId: string,
+  type: "task" | "job"
+): string {
+  return `${getBaseUrl()}/api/workflow/notification/${type}/${transcriptId}`;
 }

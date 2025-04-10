@@ -46,7 +46,7 @@ export async function handleUpload(
     id: uuidv4(),
     asset_id: asset.id,
     title: asset.name,
-    status: "STARTED",
+    status: "TRANSCRIBING",
   }));
 
   const { data: partialTranscriptsData, error: transcriptsError } =
