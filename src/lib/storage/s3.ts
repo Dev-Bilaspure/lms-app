@@ -4,6 +4,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Readable } from "stream";
 
 const S3_ENDPOINT = process.env.S3_ENDPOINT_URL;
+const S3_BUCKET = process.env.MY_S3_BUCKET!;
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || "us-east-1",
@@ -155,8 +156,53 @@ export const getPresignedUrl = async (
     return url;
   } catch (error) {
     console.error(`Failed to generate presigned URL for key ${key}:`, error);
-    throw new Error(`Failed to generate presigned URL: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(
+      `Failed to generate presigned URL: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
   }
 };
+
+/**
+ * Download JSON from S3 given an object key.
+ */
+export const downloadJsonFromS3 = async ({
+  Key,
+  Bucket = S3_BUCKET,
+}: {
+  Key: string;
+  Bucket?: string;
+}): Promise<any> => {
+  try {
+    const command = new GetObjectCommand({
+      Bucket,
+      Key,
+    });
+
+    const { Body } = await s3Client.send(command);
+
+    // Body is a stream; convert to string and then JSON.parse
+    const rawData = await streamToString(Body);
+    return JSON.parse(rawData);
+  } catch (error) {
+    console.error("Error downloading JSON object from S3:", error);
+    throw error;
+  }
+};
+
+/**
+ * Utility function to convert a ReadableStream/Node.js Readable to a string.
+ */
+function streamToString(stream: any): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Uint8Array[] = [];
+    stream.on("data", (chunk: Uint8Array) => chunks.push(chunk));
+    stream.on("error", reject);
+    stream.on("end", () => {
+      resolve(Buffer.concat(chunks).toString("utf8"));
+    });
+  });
+}
 
 export { s3Client };
