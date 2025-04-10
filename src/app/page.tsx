@@ -38,7 +38,8 @@ export default function Home() {
     (async () => {
       const { data, error } = await supabase
         .from("transcripts")
-        .select("id, title, created_at, status");
+        .select("id, title, created_at, status")
+        .order("created_at", { ascending: false });
       if (error || !data) {
         console.error("Error fetching transcripts:", error);
         return;
