@@ -72,7 +72,7 @@ export async function invokeWorkflow({
       payload.queue === "highPriority"
         ? HIGH_PRIORITY_MEDIA_TOAD_WORKER_QUEUE
         : DEFAULT_MEDIA_TOAD_WORKER_QUEUE,
-    workflowId: `media-workflow-${payload.jobId}`,
+    workflowId: `lms-workflow-${payload.jobId}`,
     searchAttributes: {
       ...(payload.type && { MediaInfraJobType: [payload.type] }),
       ...(payload.externalId && { ExternalId: [payload.externalId] }),
