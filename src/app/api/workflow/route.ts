@@ -1,6 +1,8 @@
 import { handleUpload } from "@/lib/api/workflow";
 import { type NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const formData = await req.formData();
