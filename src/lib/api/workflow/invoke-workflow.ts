@@ -37,6 +37,7 @@ export async function invokeWorkflow({
         apiKey: process.env.DEEPGRAM_API_KEY!,
         id: TaskId.generate("transcription", t.id),
         outputAsset: `transcription-asset-${t.id}`,
+        language: "en",
       },
       {
         operation: "segmentation",
