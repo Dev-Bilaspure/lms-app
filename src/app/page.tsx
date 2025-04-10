@@ -153,7 +153,7 @@ export default function Home() {
               <div className="mt-2">
                 <p className="text-sm font-medium mb-1">Uploaded files:</p>
                 <ul className="list-disc pl-5">
-                  {uploadResult.uploads.map((file: any, index: number) => (
+                  {uploadResult?.uploads?.map((file: any, index: number) => (
                     <li key={index} className="text-sm">
                       {file.originalFilename} (Key: {file.Key})
                     </li>
