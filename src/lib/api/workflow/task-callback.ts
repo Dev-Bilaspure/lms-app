@@ -85,6 +85,7 @@ async function handleSegmentationTask({
         .update({
           response: transcriptResponse,
           segments: segmentsResponse,
+          status: "DONE",
         })
         .eq("id", transcriptId);
 

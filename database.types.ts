@@ -747,6 +747,8 @@ export type Database = {
           id: string
           response: Json | null
           segments: Json | null
+          status: string
+          title: string | null
           updated_at: string
         }
         Insert: {
@@ -755,6 +757,8 @@ export type Database = {
           id?: string
           response?: Json | null
           segments?: Json | null
+          status?: string
+          title?: string | null
           updated_at?: string
         }
         Update: {
@@ -763,6 +767,8 @@ export type Database = {
           id?: string
           response?: Json | null
           segments?: Json | null
+          status?: string
+          title?: string | null
           updated_at?: string
         }
         Relationships: [
