@@ -14,7 +14,7 @@ export type Transcript = {
 export type Word = {
   text: string;
   start: number; // seconds
-  end: number;   // seconds
+  end: number; // seconds
   speaker: string; // Identifier for the speaker (e.g., "spk_0")
   confidence?: number; // Optional confidence score
 };
@@ -22,7 +22,7 @@ export type Word = {
 export type Speaker = {
   speaker: string; // Matches speaker identifier in Word
   start: number; // seconds
-  end: number;   // seconds
+  end: number; // seconds
 };
 
 // Represents a segment identified as potentially viral (from segmentation step)
@@ -30,14 +30,11 @@ export type Speaker = {
 export type ViralSegment = {
   transcriptText: string;
   start: number; // seconds
-  end: number;   // seconds
+  end: number; // seconds
   briefSegmentDescription: string;
   viralityScore: number;
   viralScoreExplanation: string;
 };
-
-
-
 
 // Represents an asset stored in S3 (linked from transcripts and clips)
 export type Asset = {
@@ -48,4 +45,4 @@ export type Asset = {
   url?: string; // Optional: Can be generated (e.g., presigned) or stored
 };
 
-export type ViewMode = 'transcript' | 'viral-clips';
+export type ViewMode = "transcript" | "viral-clips";

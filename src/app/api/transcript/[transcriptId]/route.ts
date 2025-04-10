@@ -19,62 +19,63 @@ export async function GET(
     const { data: transcriptFetchData, error: transcriptFetchError } =
       await supabase
         .from("transcripts")
-        .select("*")
+        .select(
+          `
+          *,
+          clips (
+            *,
+            asset_id,
+            assets (
+              *
+            )
+          ),
+          assets (
+            *
+          )
+        `
+        )
         .eq("id", transcriptId)
         .single();
 
     if (transcriptFetchError || !transcriptFetchData) {
       return NextResponse.json(
-        { error: `Error querying transcript: ${JSON.stringify(transcriptFetchError)}` },
+        {
+          error: `Error querying transcript: ${JSON.stringify(
+            transcriptFetchError
+          )}`,
+        },
         { status: 500 }
       );
     }
 
-    const transcriptAssetId = transcriptFetchData.asset_id;
-
-    const { data: transcriptAsset, error: transcriptAssetError } =
-      await supabase
-        .from("assets")
-        .select("*")
-        .eq("id", transcriptAssetId)
-        .single();
-
-    if (transcriptAssetError || !transcriptAsset) {
-      return NextResponse.json(
-        { error: `Error querying transcript asset: ${JSON.stringify(transcriptAssetError)}` },
-        { status: 500 }
-      );
-    }
-
-    const asset_url = await getDownloadPresignedUrl(transcriptAsset.key);
-
-    const { data: clipsFetchData, error: clipsFetchError } = await supabase
-      .from("clips")
-      .select("*")
-      .eq("transcript_id", transcriptId);
-
-    if (clipsFetchError || !clipsFetchData) {
-      return NextResponse.json(
-        { error: `Error querying clips: ${JSON.stringify(clipsFetchError)}` },
-        { status: 500}
-      );
-    }
-
-    const transcriptClips = await Promise.all(
-      clipsFetchData.map(async (clip) => {
-        const clipAsset = await getDownloadPresignedUrl(clip.asset_id);
-        return {
-          ...clip,
-          ...((clip.meta as object) || {}),
-          asset_url: clipAsset,
-        };
-      })
+    const transcriptAssetUrl = await getDownloadPresignedUrl(
+      transcriptFetchData.assets.key
     );
 
     const transcriptResponse = {
-      ...transcriptFetchData,
-      asset_url,
-      clips: transcriptClips,
+      id: transcriptFetchData.id,
+      asset_url: transcriptAssetUrl,
+      response: transcriptFetchData.response,
+      status: transcriptFetchData.status,
+      title: transcriptFetchData.title,
+      asset_id: transcriptFetchData.assets.id,
+      created_at: transcriptFetchData.created_at,
+      updated_at: transcriptFetchData.updated_at,
+      clips: await Promise.all(
+        transcriptFetchData.clips.map(async (clip) => {
+          const clipAssetUrl = await getDownloadPresignedUrl(clip.assets.key);
+          return {
+            ...(clip.meta as any),
+            id: clip.id,
+            start: clip.start,
+            end: clip.end,
+            transcript_id: clip.transcript_id,
+            created_at: clip.created_at,
+            updated_at: clip.updated_at,
+            asset_url: clipAssetUrl,
+          };
+        })
+      ),
     };
 
     return NextResponse.json(transcriptResponse, { status: 200 });
