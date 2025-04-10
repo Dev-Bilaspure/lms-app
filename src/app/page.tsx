@@ -279,14 +279,7 @@ export default function Home() {
                           transcript.status === "DONE" && "border-green-400"
                         )}
                       >
-                        <div className={cn(
-                          "h-1 w-full rounded-t-lg",
-                          transcript.status === "TRANSCRIBING" && "bg-amber-500",
-                          transcript.status === "GENERATING_SEGMENTS" && "bg-blue-500",
-                          transcript.status === "GENERATING_CLIPS" && "bg-purple-500",
-                          transcript.status === "FAILED" && "bg-red-500",
-                          transcript.status === "DONE" && "bg-green-500"
-                        )}></div>
+                        
                         <CardContent className="flex-grow flex flex-col items-center justify-center p-6">
                           <Video className="w-16 h-16 text-muted-foreground mb-4" />
                           <p className="text-sm font-medium text-center text-card-foreground mb-1 leading-tight">
