@@ -6,7 +6,6 @@ import {
   DEFAULT_MEDIA_TOAD_WORKER_QUEUE,
   HIGH_PRIORITY_MEDIA_TOAD_WORKER_QUEUE,
 } from "@/lib/temporal/constants";
-import fs from "fs";
 
 const BUCKET_NAME = process.env.S3_BUCKET_NAME!;
 const PATH_BASE = "lms-app/workflows";
@@ -50,6 +49,7 @@ export async function invokeWorkflow({
       },
       {
         operation: "clip",
+        batchClip: true,
         asset: `video-asset-${t.asset_id}`,
         id: TaskId.generate("clip", t.id),
         outputAsset: `clip-asset-${t.id}`,
