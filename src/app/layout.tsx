@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/Navbar";
 import { cn } from "@/lib/utils";
 
 const geistSans = Geist({
@@ -33,8 +32,7 @@ export default function RootLayout({
           "antialiased bg-background text-foreground font-sans"
         )}
       >
-        <Navbar />
-        <main className="pt-16">{children}</main> {/* Add padding top to avoid content overlap */}
+        {children}
       </body>
     </html>
   );

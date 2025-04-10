@@ -47,3 +47,5 @@ export type Asset = {
   name: string;
   url?: string; // Optional: Can be generated (e.g., presigned) or stored
 };
+
+export type ViewMode = 'transcript' | 'viral-clips';
