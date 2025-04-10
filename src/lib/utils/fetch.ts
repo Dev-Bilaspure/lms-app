@@ -1,7 +1,7 @@
 import { supabase } from "@/supabase/client";
 import { Transcript, ViralSegment } from "./types";
 
-type TranscriptResponse = {
+export type TranscriptResponse = {
   id: string;
   asset_url: string;
   response: Transcript;

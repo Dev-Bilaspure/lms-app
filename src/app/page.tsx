@@ -1,25 +1,55 @@
-'use client';
+"use client";
 
-import { useState, useRef } from 'react';
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { useDropzone } from "react-dropzone";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { UploadCloud, Video } from "lucide-react";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { startWorkflow } from "@/lib/utils/fetch"; // Assuming startWorkflow handles API call
+import { EmptyState } from "@/components/EmptyState";
+import { supabase } from "@/supabase/client";
+
+// Placeholder data - replace with actual API call
 
 export default function Home() {
-  const [files, setFiles] = useState<FileList | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [acceptedFilesState, setAcceptedFilesState] = useState<File[]>([]);
+  const [transcripts, setTranscripts] = useState<
+    { id: string; title: string; created_at: string }[]
+  >([]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFiles(e.target.files);
-      setUploadResult(null);
-      setErrorMessage(null);
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("transcripts")
+        .select("id, title, created_at");
+      if (error || !data) {
+        console.error("Error fetching transcripts:", error);
+        return;
+      }
+      setTranscripts(data as any);
+    })();
+  }, []);
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) {
+      return;
     }
-  };
+    setAcceptedFilesState(acceptedFiles); // Keep track of files for potential immediate upload
+    setErrorMessage(null);
+    setUploadResult(null);
 
-  const handleUpload = async () => {
-    if (!files || files.length === 0) {
-      setErrorMessage('Please select at least one file to upload');
+    // Immediately trigger upload
+    await handleUpload(acceptedFiles);
+  }, []);
+
+  const handleUpload = async (filesToUpload: File[]) => {
+    if (!filesToUpload || filesToUpload.length === 0) {
+      setErrorMessage("No files selected for upload");
       return;
     }
 
@@ -28,139 +58,129 @@ export default function Home() {
     setUploadResult(null);
 
     try {
-      // Create a FormData object to send the files
       const formData = new FormData();
-      
-      // Append all selected files to the FormData object
-      Array.from(files).forEach((file, index) => {
+      filesToUpload.forEach((file, index) => {
         formData.append(`file-${index}`, file);
       });
 
-      // Send the request to the API endpoint
-      const response = await fetch('/api/workflow', {
-        method: 'POST',
-        body: formData,
-        // Don't set Content-Type header - the browser will set it with the boundary
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Upload failed');
-      }
-
-      const result = await response.json();
+      const result = await startWorkflow(formData); // Use the imported fetch function
       setUploadResult(result);
-      
-      // Clear the selected files
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-      setFiles(null);
-      
+      // Potentially refresh transcript list here or show success message
+      console.log("Upload successful:", result);
+      setAcceptedFilesState([]); // Clear files after successful upload
+
+      // TODO: Add logic to refresh the transcript list below
+      // For now, just logging success. You might need to re-fetch mockTranscripts or actual data.
     } catch (error) {
-      console.error('Upload error:', error);
-      setErrorMessage(error instanceof Error ? error.message : 'An unknown error occurred');
+      console.error("Upload error:", error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred during upload"
+      );
     } finally {
       setIsUploading(false);
     }
   };
 
-  const resetForm = () => {
-    setFiles(null);
-    setUploadResult(null);
-    setErrorMessage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
+  const {
+    getRootProps,
+    getInputProps,
+    isDragActive,
+    isFocused,
+    isDragAccept,
+    isDragReject,
+  } = useDropzone({
+    onDrop,
+    accept: {
+      "video/*": [".mp4", ".mov", ".avi", ".mkv", ".webm"],
+      "audio/*": [".mp3", ".wav", ".aac", ".ogg", ".flac"],
+    },
+    maxSize: 200 * 1024 * 1024, // 200MB
+    multiple: true,
+  });
+
+  const style = useMemo(
+    () =>
+      cn(
+        "flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-colors duration-200 ease-in-out",
+        "bg-card hover:bg-accent/50 border-border",
+        isFocused &&
+          "outline-none ring-2 ring-ring ring-offset-2 ring-offset-background",
+        isDragAccept && "border-green-500 bg-green-500/10",
+        isDragReject && "border-destructive bg-destructive/10",
+        isDragActive && "border-primary"
+      ),
+    [isFocused, isDragActive, isDragAccept, isDragReject]
+  );
+
+  // Use mock data for now
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">File Upload Example</h1>
-      
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <div className="mb-4">
-          <label htmlFor="file-upload" className="block text-sm font-medium text-gray-700 mb-2">
-            Select Files (Max 200MB per file)
-          </label>
-          <input
-            ref={fileInputRef}
-            id="file-upload"
-            type="file" 
-            multiple
-            onChange={handleFileChange}
-            className="block w-full text-sm text-gray-500
-                     file:mr-4 file:py-2 file:px-4
-                     file:rounded-md file:border-0
-                     file:text-sm file:font-semibold
-                     file:bg-blue-50 file:text-blue-700
-                     hover:file:bg-blue-100"
-          />
+    <div className="container mx-auto px-4 py-8">
+      {/* Upload Area */}
+      <div className="mb-12">
+        <div {...getRootProps({ className: style })}>
+          <input {...getInputProps()} />
+          <UploadCloud className="w-12 h-12 text-muted-foreground mb-4" />
+          {isDragActive ? (
+            <p className="text-muted-foreground">Drop the files here ...</p>
+          ) : (
+            <p className="text-muted-foreground text-center">
+              Drag & drop some files here, or click to select files
+              <br />
+              <span className="text-xs">(Max 200MB per file)</span>
+            </p>
+          )}
+          {acceptedFilesState.length > 0 && !isUploading && (
+            <div className="mt-4 text-sm text-muted-foreground">
+              Selected: {acceptedFilesState.map((f) => f.name).join(", ")}
+              {/* <Button size="sm" variant="ghost" onClick={() => handleUpload(acceptedFilesState)} className="ml-2">Upload</Button> */}
+            </div>
+          )}
         </div>
-
-        {files && files.length > 0 && (
-          <div className="mb-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Selected Files:</h3>
-            <ul className="list-disc pl-5">
-              {Array.from(files).map((file, index) => (
-                <li key={index} className="text-sm text-gray-600">
-                  {file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)
-                </li>
-              ))}
-            </ul>
-          </div>
+        {isUploading && (
+          <div className="mt-4 text-center text-primary">Uploading...</div>
         )}
-
-        <div className="flex space-x-4">
-          <button 
-            onClick={handleUpload}
-            disabled={isUploading || !files}
-            className={`px-4 py-2 rounded-md text-white font-medium ${
-              isUploading || !files 
-                ? 'bg-blue-300 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-          >
-            {isUploading ? 'Uploading...' : 'Upload Files'}
-          </button>
-
-          <button 
-            onClick={resetForm}
-            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
-          >
-            Reset
-          </button>
-        </div>
-
         {errorMessage && (
-          <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md">
+          <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-md text-sm">
             {errorMessage}
           </div>
         )}
+        {uploadResult?.success && (
+          <div className="mt-4 p-3 bg-green-500/10 text-green-700 rounded-md text-sm">
+            Upload successful! Workflow started with ID:{" "}
+            {uploadResult.workflowId}
+          </div>
+        )}
+      </div>
 
-        {uploadResult && (
-          <div className="mt-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Upload Result:</h3>
-            <div className="p-3 bg-green-100 text-green-800 rounded-md">
-              {uploadResult.success && (
-                <p className="font-medium">Files uploaded successfully!</p>
-              )}
-
-              {uploadResult.warning && (
-                <p className="text-yellow-700 mt-1">{uploadResult.warning}</p>
-              )}
-
-              <div className="mt-2">
-                <p className="text-sm font-medium mb-1">Uploaded files:</p>
-                <ul className="list-disc pl-5">
-                  {uploadResult?.uploads?.map((file: any, index: number) => (
-                    <li key={index} className="text-sm">
-                      {file.originalFilename} (Key: {file.Key})
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+      {/* Transcript List */}
+      <div>
+        <h2 className="text-2xl font-semibold mb-6">Projects</h2>
+        {transcripts.length === 0 && !isUploading ? (
+          <EmptyState message="No projects yet. Upload a video or audio file to get started." />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {transcripts.map((transcript) => (
+              <Link
+                key={transcript.id}
+                href={`/project/${transcript.id}`}
+                passHref
+              >
+                <Card className="h-full flex flex-col hover:shadow-lg transition-shadow cursor-pointer bg-card border-border">
+                  <CardContent className="flex-grow flex flex-col items-center justify-center p-6">
+                    <Video className="w-16 h-16 text-muted-foreground mb-4" />
+                    <p className="text-sm font-medium text-center text-card-foreground mb-1 leading-tight">
+                      {transcript.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {transcript.created_at}
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
           </div>
         )}
       </div>
