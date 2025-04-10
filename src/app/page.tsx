@@ -11,6 +11,7 @@ import { startWorkflow } from "@/lib/utils/fetch"; // Assuming startWorkflow han
 import { EmptyState } from "@/components/EmptyState";
 import { supabase } from "@/supabase/client";
 import { Navbar } from "@/components/Navbar";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,18 +23,16 @@ import {
 
 export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadResult, setUploadResult] = useState<any>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [acceptedFilesState, setAcceptedFilesState] = useState<File[]>([]);
   const [transcripts, setTranscripts] = useState<
-    { id: string; title: string; created_at: string }[]
+    { id: string; title: string; created_at: string; status: string }[]
   >([]);
 
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase
         .from("transcripts")
-        .select("id, title, created_at");
+        .select("id, title, created_at, status");
       if (error || !data) {
         console.error("Error fetching transcripts:", error);
         return;
@@ -47,8 +46,6 @@ export default function Home() {
       return;
     }
     setAcceptedFilesState(acceptedFiles); // Keep track of files for potential immediate upload
-    setErrorMessage(null);
-    setUploadResult(null);
 
     // Immediately trigger upload
     await handleUpload(acceptedFiles);
@@ -57,9 +54,15 @@ export default function Home() {
   const handleUpload = async (files: File[]) => {
     if (!files?.length) return;
 
+    setIsUploading(true);
+    const toastId = toast.loading("Preparing to upload files...");
+
     try {
       const uploads = await Promise.all(
-        files.map(async (file) => {
+        files.map(async (file, index) => {
+          // Update progress for each file
+          toast.loading(`Uploading ${file.name}...`, { id: toastId });
+
           // Step 1: Get presigned URL
           const res = await fetch("/api/s3/upload-url", {
             method: "POST",
@@ -90,16 +93,38 @@ export default function Home() {
         })
       );
 
-      const { workflowId, transcripts } = await startWorkflow(uploads);
+      toast.loading("Processing files...", { id: toastId });
+      const { workflowId, transcripts: newTranscripts } = await startWorkflow(
+        uploads
+      );
 
-      setTranscripts((prev) => [...transcripts, ...prev]);
+      // Add status to new transcripts and add them to state
+      const transcriptsWithStatus = newTranscripts.map((transcript: any) => ({
+        ...transcript,
+        status: "STARTED",
+      }));
 
+      setTranscripts((prev) => [...transcriptsWithStatus, ...prev]);
+      setIsUploading(false);
+      setAcceptedFilesState([]);
+
+      toast.success("Files uploaded successfully! Processing started.", {
+        id: toastId,
+      });
       return uploads;
     } catch (error) {
       console.error("Upload error:", error);
+      setIsUploading(false);
+      toast.error(
+        `Upload failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        { id: toastId }
+      );
       throw error;
     }
   };
+
   const {
     getRootProps,
     getInputProps,
@@ -115,6 +140,7 @@ export default function Home() {
     },
     maxSize: 200 * 1024 * 1024, // 200MB
     multiple: true,
+    disabled: isUploading,
   });
 
   const style = useMemo(
@@ -126,12 +152,11 @@ export default function Home() {
           "outline-none ring-2 ring-ring ring-offset-2 ring-offset-background",
         isDragAccept && "border-green-500 bg-green-500/10",
         isDragReject && "border-destructive bg-destructive/10",
-        isDragActive && "border-primary"
+        isDragActive && "border-primary",
+        isUploading && "opacity-50 cursor-not-allowed"
       ),
-    [isFocused, isDragActive, isDragAccept, isDragReject]
+    [isFocused, isDragActive, isDragAccept, isDragReject, isUploading]
   );
-
-  // Use mock data for now
 
   return (
     <>
@@ -141,37 +166,33 @@ export default function Home() {
         <div className="mb-12">
           <div {...getRootProps({ className: style })}>
             <input {...getInputProps()} />
-            <UploadCloud className="w-12 h-12 text-muted-foreground mb-4" />
-            {isDragActive ? (
-              <p className="text-muted-foreground">Drop the files here ...</p>
-            ) : (
-              <p className="text-muted-foreground text-center">
-                Drag & drop some files here, or click to select files
-                <br />
-                <span className="text-xs">(Max 200MB per file)</span>
-              </p>
-            )}
-            {acceptedFilesState.length > 0 && !isUploading && (
-              <div className="mt-4 text-sm text-muted-foreground">
-                Selected: {acceptedFilesState.map((f) => f.name).join(", ")}
-                {/* <Button size="sm" variant="ghost" onClick={() => handleUpload(acceptedFilesState)} className="ml-2">Upload</Button> */}
+            {isUploading ? (
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 border-4 border-t-primary rounded-full animate-spin mb-4"></div>
+                <p className="text-muted-foreground">Uploading...</p>
               </div>
+            ) : (
+              <>
+                <UploadCloud className="w-12 h-12 text-muted-foreground mb-4" />
+                {isDragActive ? (
+                  <p className="text-muted-foreground">
+                    Drop the files here ...
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground text-center">
+                    Drag & drop some files here, or click to select files
+                    <br />
+                    <span className="text-xs">(Max 200MB per file)</span>
+                  </p>
+                )}
+                {acceptedFilesState.length > 0 && !isUploading && (
+                  <div className="mt-4 text-sm text-muted-foreground">
+                    Selected: {acceptedFilesState.map((f) => f.name).join(", ")}
+                  </div>
+                )}
+              </>
             )}
           </div>
-          {isUploading && (
-            <div className="mt-4 text-center text-primary">Uploading...</div>
-          )}
-          {errorMessage && (
-            <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-md text-sm">
-              {errorMessage}
-            </div>
-          )}
-          {uploadResult?.success && (
-            <div className="mt-4 p-3 bg-green-500/10 text-green-700 rounded-md text-sm">
-              Upload successful! Workflow started with ID:{" "}
-              {uploadResult.workflowId}
-            </div>
-          )}
         </div>
 
         {/* Transcript List */}
@@ -181,65 +202,101 @@ export default function Home() {
             <EmptyState message="No projects yet. Upload a video or audio file to get started." />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {transcripts.map((transcript) => (
-                <div key={transcript.id} className="relative">
-                  <div className="absolute top-2 right-2 z-10">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-full"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Open menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={async (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            await supabase
-                              .from("transcripts")
-                              .delete()
-                              .eq("id", transcript.id);
-                            setTranscripts(
-                              transcripts.filter((t) => t.id !== transcript.id)
-                            );
-                          }}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <Link href={`/project/${transcript.id}`} passHref>
-                    <Card className="h-full flex flex-col hover:shadow-lg transition-shadow cursor-pointer bg-card border-border">
-                      <CardContent className="flex-grow flex flex-col items-center justify-center p-6">
-                        <Video className="w-16 h-16 text-muted-foreground mb-4" />
-                        <p className="text-sm font-medium text-center text-card-foreground mb-1 leading-tight">
-                          {transcript.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(transcript.created_at).toLocaleDateString(
-                            undefined,
-                            {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
+              {transcripts.map((transcript) => {
+                const isProcessing = transcript.status === "STARTED";
+                return (
+                  <div key={transcript.id} className="relative">
+                    <div className="absolute top-2 right-2 z-10">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild disabled={isProcessing}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              "h-8 w-8 rounded-full",
+                              isProcessing && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Open menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              await supabase
+                                .from("transcripts")
+                                .delete()
+                                .eq("id", transcript.id);
+                              setTranscripts(
+                                transcripts.filter(
+                                  (t) => t.id !== transcript.id
+                                )
+                              );
+                              toast.success("Project deleted successfully");
+                            }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <Link
+                      href={isProcessing ? "#" : `/project/${transcript.id}`}
+                      passHref
+                      onClick={(e) => isProcessing && e.preventDefault()}
+                      className={cn(isProcessing && "cursor-not-allowed")}
+                    >
+                      <Card
+                        className={cn(
+                          "h-full flex flex-col transition-shadow bg-card border-border",
+                          !isProcessing && "hover:shadow-lg cursor-pointer",
+                          isProcessing && "opacity-80"
+                        )}
+                      >
+                        <CardContent className="flex-grow flex flex-col items-center justify-center p-6">
+                          <Video className="w-16 h-16 text-muted-foreground mb-4" />
+                          <p className="text-sm font-medium text-center text-card-foreground mb-1 leading-tight">
+                            {transcript.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground mb-2">
+                            {new Date(transcript.created_at).toLocaleDateString(
+                              undefined,
+                              {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )}
+                          </p>
+                          {isProcessing && (
+                            <div className="flex items-center mt-2">
+                              <div className="w-3 h-3 mr-2 bg-amber-500 rounded-full animate-pulse"></div>
+                              <span className="text-xs text-amber-500 font-medium">
+                                Processing
+                              </span>
+                            </div>
                           )}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                </div>
-              ))}
+                          {transcript.status === "DONE" && (
+                            <div className="flex items-center mt-2">
+                              <div className="w-3 h-3 mr-2 bg-green-500 rounded-full"></div>
+                              <span className="text-xs text-green-500 font-medium">
+                                Ready
+                              </span>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
