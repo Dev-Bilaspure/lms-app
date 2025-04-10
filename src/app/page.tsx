@@ -4,12 +4,13 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UploadCloud, Video } from "lucide-react";
+import { MoreHorizontal, Trash2, UploadCloud, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { startWorkflow } from "@/lib/utils/fetch"; // Assuming startWorkflow handles API call
 import { EmptyState } from "@/components/EmptyState";
 import { supabase } from "@/supabase/client";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 // Placeholder data - replace with actual API call
 
@@ -163,23 +164,54 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {transcripts.map((transcript) => (
-              <Link
-                key={transcript.id}
-                href={`/project/${transcript.id}`}
-                passHref
-              >
-                <Card className="h-full flex flex-col hover:shadow-lg transition-shadow cursor-pointer bg-card border-border">
-                  <CardContent className="flex-grow flex flex-col items-center justify-center p-6">
-                    <Video className="w-16 h-16 text-muted-foreground mb-4" />
-                    <p className="text-sm font-medium text-center text-card-foreground mb-1 leading-tight">
-                      {transcript.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {transcript.created_at}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
+              <div key={transcript.id} className="relative">
+                <div className="absolute top-2 right-2 z-10">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Open menu</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem 
+                        className="text-destructive focus:text-destructive"
+                        onClick={async(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          await supabase.from("transcripts").delete().eq("id", transcript.id);
+                          setTranscripts(transcripts.filter((t) => t.id !== transcript.id));
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <Link
+                  href={`/project/${transcript.id}`}
+                  passHref
+                >
+                  <Card className="h-full flex flex-col hover:shadow-lg transition-shadow cursor-pointer bg-card border-border">
+                    <CardContent className="flex-grow flex flex-col items-center justify-center p-6">
+                      <Video className="w-16 h-16 text-muted-foreground mb-4" />
+                      <p className="text-sm font-medium text-center text-card-foreground mb-1 leading-tight">
+                        {transcript.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(transcript.created_at).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </div>
             ))}
           </div>
         )}
