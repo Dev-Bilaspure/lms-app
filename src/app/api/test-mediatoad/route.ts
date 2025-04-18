@@ -18,7 +18,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         payload.queue === "highPriority"
           ? HIGH_PRIORITY_MEDIA_TOAD_WORKER_QUEUE
           : DEFAULT_MEDIA_TOAD_WORKER_QUEUE,
-      workflowId: `lms-workflow-${payload.jobId}`,
+      workflowId: `${payload.jobId}`,
       searchAttributes: {
         ...(payload.type && { MediaInfraJobType: [payload.type] }),
         ...(payload.externalId && { ExternalId: [payload.externalId] }),
